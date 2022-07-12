@@ -1,0 +1,169 @@
+---
+title: "EATING DISORDERS AND SOCIAL MEDIA"
+author: "Irene Peressini (University of Udine, Italy)"
+date: "July 2022"
+output: 
+  #github_document: default
+  pdf_document: default
+  #html_document: default
+header-includes:
+  \usepackage{fvextra}
+  \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+---
+## Introduction
+The goal of this analysis is to see whether there is a correlation between the increasing usage of social media and the number of people having an eating disorder.  
+To do so, I will first analyze the problem from a time perspective, analyzing the number of people in the USA having an eating disease between 2008 and 2018 and confronting it with the number of hours spent on social media in the USA in the same period. Secondly, I will analyze a data set I have created by asking some friends and people on internet to answer a Google Form. In this case, I will focus more on the data from just the experiences of people.
+
+## Firstly, what are eating disorders?
+To explain what an eating disorder is, I will report the definition given by the National Association of Anorexia Nervosa and Associated Disorders:  
+> "Eating disorders are illnesses in which people experience severe disturbances in their eating behaviours and related thougths and emotions. There are various types of eating disorders, the most    common being anorexia, bulimia, and binge-eating disorder."
+
+## Secondly, what are social media?
+Social media are online apps or websites where people can share different things about themselves. Some important social media are: Facebook, Instagram, Snapchat, and TikTok. It is estimated that more than half of the people in this world use social media, for a total of 4.62 billion people.
+
+## First part of the analysis
+
+### Data sets and sitography
+#### Data set about hours spent by USA citizens on social media  
+This data set contains the data from 2008 to 2018 on the number of hours spent daily on social media by USA citizens.  
+Source (data set): https://ourworldindata.org/grapher/daily-hours-spent-with-digital-media-per-adult-user?country=~USA;  
+Source (data): 	https://www.bondcap.com/report/itr19/
+
+#### Data set about eating disorders  
+This data set contains the number of people with an eating disorder in most countries from 1990 to 2019. For this analysis, I will consider just the data from 2008 to 2018 in the USA.  
+Source (data set): https://ourworldindata.org/grapher/number-with-eating-disorder-country?time=latest  
+Source (data): 	http://ghdx.healthdata.org/gbd-results-tool  
+
+### Analysis  
+First, I will need a consistent data set that has the data from the same time and of the same country. To do so, I will filter out the data about eating disorders in USA and I'll select just the variable concerning the country, year and the number of cases:  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE)
+```
+
+```{r libraries, import, include=FALSE}
+library(tibble)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+# tinytex::install_tinytex()
+ED = read_csv('/Users/irene/Desktop/ESAME 18.07/ED.csv')
+Social = read_csv('/Users/irene/Desktop/ESAME 18.07/social.csv')
+IT = read_csv('/Users/irene/Desktop/ESAME 18.07/IT.csv')
+EN = read_csv('/Users/irene/Desktop/ESAME 18.07/EN.csv')
+```
+
+```{r USA_ED}
+USA_ED = 
+  ED %>%
+    filter(Entity == "United States") %>%
+    mutate(Cases = `Prevalence - Eating disorders - Sex: Both - Age: All Ages (Number)`) %>%
+    select(Entity, Year, Cases)
+```
+  
+Secondly, I will combine the data from the ED data set and the data set about social media usage. As the information about eating disorders is from a more extended period, I will filter out the observation where there is no information about social media usage. By combining the two tables, I will have the perfect data set to start working on.  
+```{r Data}
+Social =
+  Social %>%
+  mutate(Hours = `Mobile (BOND Internet Trends (2019))` + `Desktop/Laptop (BOND Internet Trends (2019))` + `Other Connected Devices (BOND Internet Trends (2019))`) %>%
+  select(Entity, Year, Hours)
+
+Data =
+  full_join(USA_ED, Social) %>%
+  filter(!is.na(Hours))
+as_tibble(Data)
+```
+  
+To find a correlation now, we will make a plot and start observing what the data looks like. To begin, I will plot the data in a scatterplot where the x-axis represent the number of cases and the y-axis is the hours spent on social media. Every point is a different year.
+
+```{r plot cases-hours, fig.cap="Cases-Hours graphic"}
+ggplot(data = Data, aes(x = Cases, y = Hours, color='#FF6666', label=Year)) +
+  geom_point() +
+  geom_label_repel(position = position_dodge2(width = 0.1)) +
+  guides(color="none") +
+  stat_smooth(method = "lm", color="black", se=FALSE) +
+  theme_linedraw()
+```  
+  
+As we can see by the trend line, it seems to be a reversed correlation, but if we look more closely, we can see that years like 2017 and 2018 started to go back up in cases.  
+We can still try to work differently we the data and see if we can get a more easily readable plot. To do so, I have created a scatter plot where years and hours are the x-axis and the y-axis and the color of the points changes by the number of cases:  
+
+```{r plot years-hours and cases, fig.cap="Hours-Year graphic"}
+Data$Year <- factor(Data$Year,levels = c("2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018"))
+ggplot(data = Data, aes(x = Year, y = Hours, color = Cases, size = 0.3)) +
+  geom_point() +
+  scale_color_gradient(low="#FAA7A7", high="#FA4B4B") +
+  guides(size="none") +
+  theme_linedraw()
+```  
+  
+In this plot, we can see something interesting: firstly, we can see that between 2007 and 2015, there is a strong correlation between hours spent on social media and the number of cases of eating disorders, but it's a reverse correlation: the more time spent on social media, the fewer cases we see.  
+We see a change only after 2015, when the cases start to come back up and we see an increase in both social media usage and eating disorders. This can be connected with the increase in social media usage from 2015.  
+
+## Analysis of personal data sets  
+
+To study this case more deeply, I asked people to fill out a Google Form (https://forms.gle/Q7FTPCv6VzZH6yqQ6) to describe their experience and perception of eating disorders and social media.
+  
+Firstly, as I made two different forms, one in Italian and one in English, I will combine the data from both tables.  
+To do so, I will first modify the CSV by changing all the values and the names of the columns in English, then I combined the tables obtaining a data set with all the data needed. Of this data set, I decided to consider only the variables about age, sex, social media usage, if the person suffered from an eating disorder, and the connection they thought their eating disorder had with their social media use.
+
+```{r Pers_data}
+Pers_data = 
+  full_join(IT, EN) %>%
+  select(Age, Sex, `Social Media Usage`, `Suffered from ED`, `Connection ED-social`)
+as_tibble(Pers_data)
+```
+  
+Now, with the organized data, I want to see some things: firstly, I would like to see in which age range there are more people with an eating disorder.
+
+```{r plot age-ED, fig.cap="People that suffered from ED by age graphic"}
+ggplot(data = Pers_data) +
+  geom_bar(mapping = aes(x = Age, fill = `Suffered from ED`,)) +
+  theme_linedraw()
+```
+  
+As we can see, most people with ED are between 17 and 25 years old, in the group of people I considered. So it is spread in an age group that is more known to use social media.  
+Then I would like to see how many people with an eating disorder see a connection between that and their use of social media. In this case, I want to see what they say consciously. In this plot, I consider only people who answered positively to the question "Have you had an eating disorder?".
+```{r plot ed-connection, fig.cap="Connection between ED and social media graphic"}
+Pers_data_conn =
+  Pers_data %>%
+    filter(`Suffered from ED` == "Yes")
+
+Pers_data_conn$`Connection ED-social` <- factor(Pers_data_conn$`Connection ED-social`,levels = c("Yes", "No", "Not only"))
+
+ggplot(data = Pers_data_conn) +
+  geom_bar(mapping = aes(x = `Connection ED-social`, fill = "#FF6666")) +
+  theme(legend.position="none") +
+  guides(fill="none") +
+  theme_linedraw()
+  
+```
+  
+As we can see, very few people see a connection between their illness and social media, but most of them affirm that it is a part of the problem.
+  
+Now I would like to make a litmus test to see if asking two questions separately, with apparently no connection between the two, something changes.  
+I created a bar plot where we can see the distribution of eating disorders by seeing the number of hours spent on social media.
+```{r plot social-ed, fig.cap="Social media usage and number of people with ED graphic"}
+Pers_data$`Social Media Usage` <- factor(Pers_data$`Social Media Usage`,levels = c("1> h", "1-2 h", "3-4 h", "4< h"))
+Pers_data1 =
+  Pers_data %>%
+    filter(!is.na(`Suffered from ED`)) %>%
+    filter(!is.na(`Social Media Usage`))
+
+ggplot(data = Pers_data1) +
+  geom_bar(mapping = aes(x = `Social Media Usage`, fill = `Suffered from ED`)) +
+  scale_x_discrete(labels = c("<1 h", "1-2 h", "3-4 h", ">4 h")) +
+  theme_linedraw()
+```
+  
+In this case, we can see something interesting: eating disorders are primarily shown in people who use a lot social media. This also shows how people probably do not see this as an important factor as they will not say it consciously.
+
+## Conclusions
+In conclusion, in this analysis, with the data we had, I can say quite sure that there is a correlation between the use of social media and eating disorders.  
+In the first part of the analysis, we can see the number of cases increase after 2015, and the number of hours spent on social media. After 2015 social media started to be more popular, as great apps as Instagram and Snapchat started to be more used. Probably if I could use a data set more updated, with data until 2021 or 2022, we could see a more drastic answer in the plots.  
+In the second part of the analysis, though, we can see the answer way more easily, as the last graphic show us exactly this: as the number of hours increases the percentage of people suffering from this kind of illness is higher.  
+Could this be connected with always showing the best part of ourselves and our lives online? Even using filters, photoshop, and other ways to make us look perfect?  
+Personally, I think so. It is very difficult to not compare yourself with the number of images of "perfect" people online, if you spend 2-3 or more hours a day, just seeing just that.  
+My suggestion is to educate and offer support from a young age. Nowadays, social media are accessible to more and more young users who cannot see the difference between a real photo and a faked or filtered photo.  
